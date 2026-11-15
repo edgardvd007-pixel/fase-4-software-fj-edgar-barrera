@@ -1,0 +1,20 @@
+[2026-11-15 17:21:40] [INFO] Sistema Software FJ inicializado correctamente.
+[2026-11-15 17:21:40] [EXITO] Cliente registrado: Cliente [C001] - Laura Gómez | Correo: laura.gomez@empresa.com | Tel: 3104567890
+[2026-11-15 17:21:40] [EXITO] Cliente registrado: Cliente [C002] - Carlos Mendoza | Correo: cmendoza@tech.co | Tel: 3209876543
+[2026-11-15 17:21:40] [ERROR] Fallo al registrar cliente (C003): El correo 'correo_sin_arroba.com' no tiene un formato válido.
+[2026-11-15 17:21:40] [EXITO] Servicio agregado: Sala [S001]: Sala Innovación (Capacidad: 25 pers.) - $80,000/h [Disponible]
+[2026-11-15 17:21:40] [EXITO] Servicio agregado: Equipo [S002]: Servidor Portátil GPU (Gama profesional) - $50,000/h [Disponible]
+[2026-11-15 17:21:40] [EXITO] Servicio agregado: Asesoría [S003]: Arquitectura Cloud (Nube y Redes) - $120,000/h [Disponible]
+[2026-11-15 17:21:40] [EXITO] Servicio agregado: Sala [S004]: Sala Mantenimiento (Capacidad: 10 pers.) - $60,000/h [No disponible]
+[2026-11-15 17:21:40] [EXITO] Reserva confirmada: Reserva [R001] | Estado: CONFIRMADA | Cliente: Laura Gómez | Servicio: Sala Innovación (4.0h) | Total: $376,992.00
+[2026-11-15 17:21:40] [AUDITORIA] Finalizó intento de transacción para reserva 'R001'.
+[2026-11-15 17:21:40] [EXITO] Reserva confirmada: Reserva [R002] | Estado: CONFIRMADA | Cliente: Carlos Mendoza | Servicio: Servidor Portátil GPU (3.0h) | Total: $165,000.00
+[2026-11-15 17:21:40] [AUDITORIA] Finalizó intento de transacción para reserva 'R002'.
+[2026-11-15 17:21:40] [ERROR] Error en reserva 'R003': Error de consulta: el cliente 'C999' no existe en el sistema. | Causa original: No se encontró el ID 'C999' en la lista de clientes.
+[2026-11-15 17:21:40] [AUDITORIA] Finalizó intento de transacción para reserva 'R003'.
+[2026-11-15 17:21:40] [ERROR] Error en reserva 'R004': El servicio 'Sala Mantenimiento' no está disponible actualmente.
+[2026-11-15 17:21:40] [AUDITORIA] Finalizó intento de transacción para reserva 'R004'.
+[2026-11-15 17:21:40] [ERROR] Error en reserva 'R005': Las asesorías especializadas requieren un mínimo de 2 horas.
+[2026-11-15 17:21:40] [AUDITORIA] Finalizó intento de transacción para reserva 'R005'.
+[2026-11-15 17:21:40] [EXITO] Reserva procesada: Reserva [R001] | Estado: PROCESADA | Cliente: Laura Gómez | Servicio: Sala Innovación (4.0h) | Total: $376,992.00
+[2026-11-15 17:21:40] [EXITO] Reserva cancelada: Reserva [R002] | Estado: CANCELADA | Cliente: Carlos Mendoza | Servicio: Servidor Portátil GPU (3.0h) | Total: $165,000.00
