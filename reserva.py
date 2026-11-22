@@ -1,62 +1,59 @@
-from entidades import EntidadBase, Cliente
-from servicios import Servicio
-from excepciones import DatosInvalidosError, ReservaError
+# Importamos herramientas para fechas, tipado opcional y clases del dominio
+from datetime import datetime
+from typing import Optional
+from entidades import Cliente
+from excepciones import DatosInvalidosError
+from servicios import ReservaSala, Servicio
 
 
-class Reserva(EntidadBase):
-    """Vincula un Cliente con un Servicio, gestionando duración, costo y estado."""
+class Reserva:
+    # Clase integradora que asocia un Cliente con un Servicio y calcula el valor total
 
-    ESTADOS_VALIDOS = ("PENDIENTE", "CONFIRMADA", "CANCELADA", "PROCESADA")
-
-    def __init__(self, id_reserva, cliente, servicio, horas, descuento=0.0, incluir_iva=False):
-        super().__init__(id_reserva)
+    def __init__(
+        self,
+        id_reserva: str,
+        cliente: Cliente,
+        servicio: Servicio,
+        cantidad: int,
+        descuento: float = 0.0,
+        recargo_extra: Optional[float] = None,
+        asistentes: Optional[int] = None,
+    ):
+        # Valida que el código de reserva no sea vacío
+        if not id_reserva or not id_reserva.strip():
+            raise DatosInvalidosError("El identificador de la reserva es obligatorio.")
+        # Valida mediante isinstance que los objetos pertenezcan a las clases esperadas
         if not isinstance(cliente, Cliente):
-            raise ReservaError("La reserva debe asociarse a un objeto Cliente válido.")
+            raise DatosInvalidosError("Se requiere una instancia válida de Cliente.")
         if not isinstance(servicio, Servicio):
-            raise ReservaError("La reserva debe asociarse a un objeto Servicio válido.")
-        if horas <= 0:
-            raise DatosInvalidosError("La duración de la reserva debe ser mayor a cero horas.")
+            raise DatosInvalidosError("Se requiere una instancia válida de Servicio.")
 
-        self.__cliente = cliente
-        self.__servicio = servicio
-        self.__horas = float(horas)
-        self.__descuento = descuento
-        self.__incluir_iva = incluir_iva
-        self.__estado = "PENDIENTE"
-        self.validar()
-        self.__costo_total = self.__servicio.calcular_costo(horas, descuento, incluir_iva)
+        # Asignación de atributos de la reserva
+        self.id_reserva = id_reserva.strip()
+        self.cliente = cliente
+        self.servicio = servicio
+        self.cantidad = cantidad
+        self.descuento = descuento
+        self.recargo_extra = recargo_extra
+        self.asistentes = asistentes
+        # Registra la marca de tiempo exacta en que se crea la reserva
+        self.fecha_registro = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    @property
-    def estado(self):
-        return self.__estado
+        # Si el servicio es una sala y se indicó número de asistentes, valida el aforo
+        if isinstance(self.servicio, ReservaSala) and self.asistentes is not None:
+            self.servicio.validar_asistentes(self.asistentes)
 
-    @property
-    def costo_total(self):
-        return self.__costo_total
+        # Invoca polimórficamente el cálculo del costo según el tipo de servicio
+        self.costo_total = self.servicio.calcular_costo(
+            self.cantidad,
+            descuento=self.descuento,
+            recargo_extra=self.recargo_extra,
+        )
 
-    def validar(self):
-        self.__cliente.validar()
-        self.__servicio.validar()
-        return True
-
-    def confirmar(self):
-        if self.__estado == "CANCELADA":
-            raise ReservaError(f"No se puede confirmar la reserva {self.id} porque fue cancelada.")
-        self.__estado = "CONFIRMADA"
-
-    def cancelar(self):
-        if self.__estado == "PROCESADA":
-            raise ReservaError(f"No se puede cancelar la reserva {self.id} porque ya fue procesada.")
-        self.__estado = "CANCELADA"
-
-    def procesar(self):
-        if self.__estado != "CONFIRMADA":
-            raise ReservaError(f"La reserva {self.id} debe estar CONFIRMADA antes de procesarse.")
-        self.__estado = "PROCESADA"
-
-    def obtener_resumen(self):
+    def generar_comprobante(self) -> str:
+        # Construye y devuelve el resumen textual de la reserva confirmada
         return (
-            f"Reserva [{self.id}] | Estado: {self.__estado} | "
-            f"Cliente: {self.__cliente.nombre} | Servicio: {self.__servicio.nombre} "
-            f"({self.__horas}h) | Total: ${self.__costo_total:,.2f}"
+            f"Reserva {self.id_reserva} | Fecha: {self.fecha_registro} | "
+            f"Cliente: {self.cliente.nombre} | Servicio: {self.servicio.nombre} | "
+            f"Cantidad: {self.cantidad} | Total: ${self.costo_total:,.2f}"
         )
