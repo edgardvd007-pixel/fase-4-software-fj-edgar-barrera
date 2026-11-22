@@ -1,75 +1,80 @@
+# Importamos ABC y abstractmethod para definir clases base abstractas
 from abc import ABC, abstractmethod
-from excepciones import DatosInvalidosError, ClienteInvalidoError
+# Importamos la excepción personalizada para validar los datos del cliente
+from excepciones import DatosInvalidosError
 
 
 class EntidadBase(ABC):
-    """Clase abstracta base para todas las entidades del sistema Software FJ."""
+    # Clase abstracta base que obliga a sus subclases a tener un identificador único
 
-    def __init__(self, id_entidad):
-        if not id_entidad or not str(id_entidad).strip():
+    def __init__(self, id_entidad: str):
+        # Valida que el ID no esté vacío ni contenga solo espacios
+        if not id_entidad or not id_entidad.strip():
             raise DatosInvalidosError("El identificador de la entidad no puede estar vacío.")
-        self.__id = str(id_entidad).strip()
+        # Almacena el ID de forma protegida (encapsulamiento)
+        self._id_entidad = id_entidad.strip()
 
     @property
-    def id(self):
-        return self.__id
+    def id_entidad(self) -> str:
+        # Getter que permite consultar el ID sin modificarlo directamente
+        return self._id_entidad
 
     @abstractmethod
-    def validar(self):
-        """Método abstracto obligatorio para validar la integridad de la entidad."""
-        pass
-
-    @abstractmethod
-    def obtener_resumen(self):
-        """Método abstracto para presentar la información resumida de la entidad."""
+    def obtener_resumen(self) -> str:
+        # Método abstracto que deberá implementar cada clase hija
         pass
 
 
 class Cliente(EntidadBase):
-    """Representa un cliente de Software FJ con encapsulación y validaciones estrictas."""
+    # Clase concreta que representa a un cliente del sistema Software FJ
 
-    def __init__(self, id_cliente, nombre, correo, telefono):
+    def __init__(self, id_cliente: str, nombre: str, documento: str, correo: str):
+        # Llama al constructor de EntidadBase para validar y asignar el ID
         super().__init__(id_cliente)
+        # Usa los setters definidos abajo para validar cada atributo al crear el objeto
         self.nombre = nombre
+        self.documento = documento
         self.correo = correo
-        self.telefono = telefono
-        self.validar()
 
     @property
-    def nombre(self):
-        return self.__nombre
+    def nombre(self) -> str:
+        # Getter del nombre del cliente
+        return self._nombre
 
     @nombre.setter
-    def nombre(self, valor):
-        if not valor or len(valor.strip()) < 3:
-            raise ClienteInvalidoError("El nombre del cliente debe tener al menos 3 caracteres.")
-        self.__nombre = valor.strip()
+    def nombre(self, valor: str):
+        # Verifica que el nombre sea una cadena válida con al menos 3 caracteres
+        if not isinstance(valor, str) or len(valor.strip()) < 3:
+            raise DatosInvalidosError("El nombre del cliente debe tener al menos 3 caracteres.")
+        # Guarda el nombre limpio de espacios extremos
+        self._nombre = valor.strip()
 
     @property
-    def correo(self):
-        return self.__correo
+    def documento(self) -> str:
+        # Getter del documento de identidad
+        return self._documento
+
+    @documento.setter
+    def documento(self, valor: str):
+        # Verifica que el documento tenga solo números y mínimo 5 dígitos
+        if not isinstance(valor, str) or not valor.strip().isdigit() or len(valor.strip()) < 5:
+            raise DatosInvalidosError("El documento debe contener únicamente números (mínimo 5 dígitos).")
+        # Guarda el documento validado
+        self._documento = valor.strip()
+
+    @property
+    def correo(self) -> str:
+        # Getter del correo electrónico
+        return self._correo
 
     @correo.setter
-    def correo(self, valor):
-        if not valor or "@" not in valor or "." not in valor.split("@")[-1]:
-            raise ClienteInvalidoError(f"El correo '{valor}' no tiene un formato válido.")
-        self.__correo = valor.strip().lower()
+    def correo(self, valor: str):
+        # Valida estructura básica de correo electrónico (@ y punto)
+        if not isinstance(valor, str) or "@" not in valor or "." not in valor.split("@")[-1]:
+            raise DatosInvalidosError(f"El correo electrónico '{valor}' no tiene un formato válido.")
+        # Normaliza el correo a minúsculas y sin espacios
+        self._correo = valor.strip().lower()
 
-    @property
-    def telefono(self):
-        return self.__telefono
-
-    @telefono.setter
-    def telefono(self, valor):
-        telefono_limpio = str(valor).strip()
-        if not telefono_limpio.isdigit() or len(telefono_limpio) < 7:
-            raise ClienteInvalidoError("El teléfono debe contener al menos 7 dígitos numéricos.")
-        self.__telefono = telefono_limpio
-
-    def validar(self):
-        if not self.__nombre or not self.__correo or not self.__telefono:
-            raise ClienteInvalidoError("Todos los campos del cliente son obligatorios.")
-        return True
-
-    def obtener_resumen(self):
-        return f"Cliente [{self.id}] - {self.__nombre} | Correo: {self.__correo} | Tel: {self.__telefono}"
+    def obtener_resumen(self) -> str:
+        # Implementación del método abstracto con los datos formateados del cliente
+        return f"Cliente [{self.id_entidad}]: {self.nombre} | Doc: {self.documento} | Email: {self.correo}"
