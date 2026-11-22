@@ -1,23 +1,30 @@
+# Módulo que define la jerarquía de excepciones personalizadas para el sistema Software FJ
+
 class SoftwareFJError(Exception):
-    """Excepción base para todos los errores del sistema Software FJ."""
+    # Clase base para todas las excepciones de negocio del sistema
     pass
 
 
 class DatosInvalidosError(SoftwareFJError):
-    """Se lanza cuando los datos ingresados tienen formato o valores incorrectos."""
+    # Se lanza cuando un atributo (nombre, correo, documento o tarifa) tiene formato inválido
     pass
 
 
-class ClienteInvalidoError(SoftwareFJError):
-    """Se lanza cuando falla la creación o validación de un cliente."""
+class CapacidadExcedidaError(SoftwareFJError):
+    # Se lanza cuando la cantidad de asistentes supera el aforo máximo permitido de una sala
+    pass
+
+
+class DuracionInvalidaError(SoftwareFJError):
+    # Se lanza cuando las horas o días de reserva son menores o iguales a cero
     pass
 
 
 class ServicioNoDisponibleError(SoftwareFJError):
-    """Se lanza cuando un servicio no existe, está inactivo o no cumple requisitos."""
+    # Se lanza cuando se intenta procesar un servicio o equipo inactivo o sin stock
     pass
 
 
-class ReservaError(SoftwareFJError):
-    """Se lanza cuando ocurre un conflicto o error al gestionar una reserva."""
+class RegistroLogError(SoftwareFJError):
+    # Se lanza si ocurre un error de entrada/salida al escribir en el archivo eventos_sistema.log
     pass
