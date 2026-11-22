@@ -1,119 +1,170 @@
-from abc import abstractmethod
-from entidades import EntidadBase
-from excepciones import DatosInvalidosError, ServicioNoDisponibleError
+# Importamos herramientas para clases abstractas y tipado opcional
+from abc import ABC, abstractmethod
+from typing import Optional
+# Importamos las excepciones de negocio necesarias
+from excepciones import (
+    CapacidadExcedidaError,
+    DatosInvalidosError,
+    DuracionInvalidaError,
+    ServicioNoDisponibleError,
+)
 
 
-class Servicio(EntidadBase):
-    """Clase abstracta que modela un servicio ofrecido por Software FJ."""
+class Servicio(ABC):
+    # Clase abstracta base para todos los servicios ofrecidos por Software FJ
 
-    def __init__(self, id_servicio, nombre, tarifa_base, disponible=True):
-        super().__init__(id_servicio)
+    def __init__(self, codigo: str, nombre: str, tarifa_base: float, disponible: bool = True):
+        # Valida que el código y el nombre no estén vacíos
+        if not codigo or not codigo.strip():
+            raise DatosInvalidosError("El código del servicio es obligatorio.")
         if not nombre or not nombre.strip():
             raise DatosInvalidosError("El nombre del servicio es obligatorio.")
-        if tarifa_base <= 0:
-            raise DatosInvalidosError("La tarifa base debe ser mayor a cero.")
-        self.__nombre = nombre.strip()
-        self.__tarifa_base = float(tarifa_base)
-        self.__disponible = bool(disponible)
+        # Valida que la tarifa base sea un número positivo
+        if not isinstance(tarifa_base, (int, float)) or tarifa_base <= 0:
+            raise DatosInvalidosError("La tarifa base debe ser un valor numérico mayor a cero.")
+
+        # Asignación de atributos encapsulados
+        self._codigo = codigo.strip()
+        self._nombre = nombre.strip()
+        self._tarifa_base = float(tarifa_base)
+        self._disponible = bool(disponible)
 
     @property
-    def nombre(self):
-        return self.__nombre
+    def codigo(self) -> str:
+        # Devuelve el código identificador del servicio
+        return self._codigo
 
     @property
-    def tarifa_base(self):
-        return self.__tarifa_base
+    def nombre(self) -> str:
+        # Devuelve el nombre descriptivo del servicio
+        return self._nombre
 
     @property
-    def disponible(self):
-        return self.__disponible
+    def tarifa_base(self) -> float:
+        # Devuelve la tarifa base del servicio
+        return self._tarifa_base
+
+    @property
+    def disponible(self) -> bool:
+        # Indica si el servicio se encuentra activo para reservas
+        return self._disponible
 
     @disponible.setter
-    def disponible(self, estado):
-        self.__disponible = bool(estado)
-
-    def validar(self):
-        if not self.__disponible:
-            raise ServicioNoDisponibleError(f"El servicio '{self.__nombre}' no está disponible actualmente.")
-        return True
+    def disponible(self, estado: bool):
+        # Actualiza el estado de disponibilidad del servicio
+        self._disponible = bool(estado)
 
     @abstractmethod
-    def calcular_costo(self, horas, descuento=0.0, incluir_iva=False):
-        """
-        Calcula el costo del servicio (polimórfico en clases hijas).
-        Simula sobrecarga mediante parámetros opcionales (descuento e IVA).
-        """
+    def calcular_costo(self, cantidad: int, descuento: float = 0.0, recargo_extra: Optional[float] = None) -> float:
+        # Método polimórfico abstracto con parámetros opcionales (sobrecarga simulada)
         pass
 
-    def _aplicar_ajustes(self, subtotal, descuento=0.0, incluir_iva=False):
-        """Método auxiliar encapsulado para aplicar descuentos e impuestos."""
-        if descuento < 0 or descuento > 0.5:
-            raise DatosInvalidosError("El descuento debe estar entre 0.0 (0%) y 0.5 (50%).")
-        total = subtotal * (1 - descuento)
-        if incluir_iva:
-            total *= 1.19
-        return round(total, 2)
+    def _validar_parametros_calculo(self, cantidad: int, descuento: float):
+        # Verifica disponibilidad antes de realizar cualquier cálculo
+        if not self._disponible:
+            raise ServicioNoDisponibleError(f"El servicio '{self.nombre}' no se encuentra disponible actualmente.")
+        # Valida que la cantidad (horas, días o sesiones) sea mayor a cero
+        if not isinstance(cantidad, int) or cantidad <= 0:
+            raise DuracionInvalidaError("La cantidad o duración debe ser un entero mayor a cero.")
+        # Valida que el descuento esté en el rango porcentual permitido [0, 1]
+        if not isinstance(descuento, (int, float)) or not (0.0 <= descuento <= 1.0):
+            raise DatosInvalidosError("El descuento debe estar entre 0.0 (0%) y 1.0 (100%).")
+
+    def obtener_detalle(self) -> str:
+        # Retorna una cadena resumen con el estado del servicio
+        estado = "Disponible" if self.disponible else "No disponible"
+        return f"[{self.codigo}] {self.nombre} - Tarifa base: ${self.tarifa_base:,.2f} ({estado})"
 
 
 class ReservaSala(Servicio):
-    """Servicio especializado para reserva de salas de juntas o capacitación."""
+    # Subclase para gestión de alquiler de salas por horas con control de aforo
 
-    def __init__(self, id_servicio, nombre, tarifa_base, capacidad_personas, disponible=True):
-        super().__init__(id_servicio, nombre, tarifa_base, disponible)
-        if capacidad_personas <= 0:
-            raise DatosInvalidosError("La capacidad de la sala debe ser mayor a cero.")
-        self.__capacidad = int(capacidad_personas)
+    def __init__(self, codigo: str, nombre: str, tarifa_hora: float, capacidad_maxima: int, disponible: bool = True):
+        # Inicializa los atributos heredados de Servicio
+        super().__init__(codigo, nombre, tarifa_hora, disponible)
+        # Valida que la capacidad máxima sea un entero positivo
+        if not isinstance(capacidad_maxima, int) or capacidad_maxima <= 0:
+            raise DatosInvalidosError("La capacidad máxima de la sala debe ser mayor a cero.")
+        self._capacidad_maxima = capacidad_maxima
 
-    def calcular_costo(self, horas, descuento=0.0, incluir_iva=False):
-        if horas <= 0:
-            raise DatosInvalidosError("Las horas de reserva de sala deben ser mayores a cero.")
+    @property
+    def capacidad_maxima(self) -> int:
+        # Devuelve el aforo máximo permitido en la sala
+        return self._capacidad_maxima
+
+    def validar_asistentes(self, asistentes: int):
+        # Comprueba que los asistentes sean al menos 1 y no superen el aforo máximo
+        if not isinstance(asistentes, int) or asistentes <= 0:
+            raise DatosInvalidosError("El número de asistentes debe ser mayor a cero.")
+        if asistentes > self._capacidad_maxima:
+            raise CapacidadExcedidaError(
+                f"Aforo excedido en '{self.nombre}': se solicitaron {asistentes} lugares y el máximo es {self._capacidad_maxima}."
+            )
+
+    def calcular_costo(self, horas: int, descuento: float = 0.0, recargo_extra: Optional[float] = None) -> float:
+        # Ejecuta las validaciones comunes de disponibilidad, duración y descuento
+        self._validar_parametros_calculo(horas, descuento)
+        # Calcula el subtotal multiplicando tarifa por hora y horas reservadas
         subtotal = self.tarifa_base * horas
-        if self.__capacidad > 20:
-            subtotal *= 1.10
-        return self._aplicar_ajustes(subtotal, descuento, incluir_iva)
-
-    def obtener_resumen(self):
-        estado = "Disponible" if self.disponible else "No disponible"
-        return f"Sala [{self.id}]: {self.nombre} (Capacidad: {self.__capacidad} pers.) - ${self.tarifa_base:,.0f}/h [{estado}]"
+        # Aplica el porcentaje de descuento
+        total = subtotal * (1 - descuento)
+        # Si se envió un recargo opcional (ej. montaje), lo suma al total
+        if recargo_extra is not None and recargo_extra > 0:
+            total += recargo_extra
+        return round(total, 2)
 
 
 class AlquilerEquipo(Servicio):
-    """Servicio especializado para alquiler de equipos tecnológicos."""
+    # Subclase para alquiler de equipos tecnológicos por días con seguro opcional
 
-    def __init__(self, id_servicio, nombre, tarifa_base, gama_equipo, disponible=True):
-        super().__init__(id_servicio, nombre, tarifa_base, disponible)
-        if gama_equipo.lower() not in ("estandar", "profesional"):
-            raise DatosInvalidosError("La gama del equipo debe ser 'estandar' o 'profesional'.")
-        self.__gama = gama_equipo.lower()
+    def __init__(self, codigo: str, nombre: str, tarifa_dia: float, serial: str, disponible: bool = True):
+        # Inicializa atributos comunes desde la clase padre Servicio
+        super().__init__(codigo, nombre, tarifa_dia, disponible)
+        # Valida que el equipo tenga un número de serie asignado
+        if not serial or not serial.strip():
+            raise DatosInvalidosError("El número de serie del equipo es obligatorio.")
+        self._serial = serial.strip()
 
-    def calcular_costo(self, horas, descuento=0.0, incluir_iva=False):
-        if horas <= 0:
-            raise DatosInvalidosError("Las horas de alquiler del equipo deben ser mayores a cero.")
-        subtotal = self.tarifa_base * horas
-        if self.__gama == "profesional":
-            subtotal += 15000
-        return self._aplicar_ajustes(subtotal, descuento, incluir_iva)
+    @property
+    def serial(self) -> str:
+        # Devuelve el número de serie del equipo
+        return self._serial
 
-    def obtener_resumen(self):
-        estado = "Disponible" if self.disponible else "No disponible"
-        return f"Equipo [{self.id}]: {self.nombre} (Gama {self.__gama}) - ${self.tarifa_base:,.0f}/h [{estado}]"
+    def calcular_costo(self, dias: int, descuento: float = 0.0, recargo_extra: Optional[float] = None) -> float:
+        # Valida parámetros de duración y descuento
+        self._validar_parametros_calculo(dias, descuento)
+        # Calcula el costo base según los días de alquiler
+        subtotal = self.tarifa_base * dias
+        total = subtotal * (1 - descuento)
+        # Suma el seguro o transporte adicional si fue especificado
+        if recargo_extra is not None and recargo_extra > 0:
+            total += recargo_extra
+        return round(total, 2)
 
 
 class AsesoriaEspecializada(Servicio):
-    """Servicio especializado de consultoría técnica o empresarial."""
+    # Subclase para servicios de consultoría técnica con incremento por modalidad remota
 
-    def __init__(self, id_servicio, nombre, tarifa_base, area_tecnica, disponible=True):
-        super().__init__(id_servicio, nombre, tarifa_base, disponible)
-        if not area_tecnica or not area_tecnica.strip():
-            raise DatosInvalidosError("El área técnica de la asesoría es obligatoria.")
-        self.__area_tecnica = area_tecnica.strip()
+    def __init__(self, codigo: str, nombre: str, tarifa_sesion: float, especialidad: str, disponible: bool = True):
+        # Llama al constructor padre
+        super().__init__(codigo, nombre, tarifa_sesion, disponible)
+        # Valida el área de especialidad del consultor
+        if not especialidad or not especialidad.strip():
+            raise DatosInvalidosError("La especialidad de la asesoría no puede estar vacía.")
+        self._especialidad = especialidad.strip()
 
-    def calcular_costo(self, horas, descuento=0.0, incluir_iva=False):
-        if horas < 2:
-            raise DatosInvalidosError("Las asesorías especializadas requieren un mínimo de 2 horas.")
-        subtotal = self.tarifa_base * horas
-        return self._aplicar_ajustes(subtotal, descuento, incluir_iva)
+    @property
+    def especialidad(self) -> str:
+        # Devuelve la especialidad técnica
+        return self._especialidad
 
-    def obtener_resumen(self):
-        estado = "Disponible" if self.disponible else "No disponible"
-        return f"Asesoría [{self.id}]: {self.nombre} ({self.__area_tecnica}) - ${self.tarifa_base:,.0f}/h [{estado}]"
+    def calcular_costo(self, sesiones: int, descuento: float = 0.0, recargo_extra: Optional[float] = None) -> float:
+        # Valida los parámetros de entrada
+        self._validar_parametros_calculo(sesiones, descuento)
+        # Aplica un incremento fijo del 10% por soporte documental de asesoría
+        subtotal = (self.tarifa_base * sesiones) * 1.10
+        total = subtotal * (1 - descuento)
+        # Agrega cargos extra opcionales si aplican
+        if recargo_extra is not None and recargo_extra > 0:
+            total += recargo_extra
+        return round(total, 2)
